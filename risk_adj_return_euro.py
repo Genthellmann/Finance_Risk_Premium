@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jun 25 09:21:15 2021
+
+@author: johannesthellmann
+"""
+
+
+import pandas as pd
+import statsmodels.api as sm
+
+
+# #1 month Treasury Bills
+# path = '/Users/johannesthellmann/Desktop/SoSe2021/Seminar BWL/data/csv/Treasury.csv'
+# cols_to_use = ['Dates','PX_LAST']
+# dtype_dic= {'DATES':str,'PX_LAST':float}
+# treasury = pd.read_csv(path, delimiter=',', decimal='.', usecols=cols_to_use, dtype=dtype_dic)
+# #Index erstellen zuerst als extra Spalte dann als index und behalten für differenz zu maturity date
+# treasury['INDEX'] = treasury['Dates']
+# treasury = treasury.set_index(treasury['INDEX'])
+# treasury = treasury.drop(['INDEX'], axis=1)
+# treasury['PX_LAST_TREASURY'] = treasury['PX_LAST']
+# treasury = treasury.drop('PX_LAST', axis = 1)
+
+# #make date time object
+# treasury = treasury.drop(['Dates'], axis = 1) #Spalte ins Format to_datetime bringen
+
+
+#Results of L/S Trading Strategy
+path1 = '/Users/johannesthellmann/Desktop/SoSe2021/Seminar BWL/data/csv/LS_TradingStrategy_Eurostoxx.csv'
+LongShort = pd.read_csv(path1, delimiter = ',', decimal= '.')
+LongShort = LongShort.set_index(LongShort['INDEX'])
+LongShort = LongShort.drop(['INDEX'], axis=1)
+
+#S&P500
+# path2 = '/Users/johannesthellmann/Desktop/SoSe2021/Seminar BWL/data/csv/SP500.csv'
+# SP_500 = pd.read_csv(path2, delimiter = ',', decimal = '.') 
+# SP_500['INDEX'] = SP_500['Dates']
+# SP_500 = SP_500.set_index(SP_500['INDEX'])
+# SP_500['PX_LAST_SP500'] = SP_500['PX_LAST']
+# SP_500 = SP_500.drop(['INDEX','PX_LAST','LAST_PRICE', 'Dates'], axis=1)
+
+#=====================================================
+#CAPM
+#=====================================================
+
+#data = pd.concat([LongShort, treasury, SP_500], axis=1)
+#data = data.dropna(subset = ['PX_LAST_SP500', 'PX_LAST_TREASURY','RETURN'])
+#data['M_RF'] = (data['PX_LAST_SP500'] - data['PX_LAST_TREASURY'])
+
+
+#=====================================================
+#Table 5 Risk Adjusted returns
+#=====================================================
+
+path3 = '/Users/johannesthellmann/Desktop/SoSe2021/Seminar BWL/data/csv/ff_europe_daily.csv'
+ff = pd.read_csv(path3, delimiter=',', decimal='.')
+ff['INDEX'] = ff['Dates_FF']
+ff = ff.set_index(ff['INDEX'])
+ff = ff.drop(['INDEX'], axis=1)
+ff['Dates_FF'] = pd.to_datetime(ff['Dates_FF'])
+
+#data = pd.concat([LongShort, ff, treasury], axis=1)
+data = pd.concat([LongShort, ff], axis = 1)
+data = data.dropna(subset = ['RETURN'])
+data = data.dropna()
+
+#set time period
+startdate = pd.to_datetime('2020-01-01')
+enddate = pd.to_datetime('2020-05-21')
+mask = (data['Dates_FF'] > pd.to_datetime(startdate)) & (data['Dates_FF'] < pd.to_datetime(enddate))
+data = data.loc[mask]
+
+#When position is long = 1 else 0
+#data['Mkt-RF_long'] = data['Mkt-RF'] * (data['INDICATOR'] == 'L') #Mkt-RF_long = differential BETA
+                                                                   #Mkt-R = BETA    
+data['Beta'] = data['Mkt-RF']
+data['Differential beta'] = data['Mkt-RF'] * (data['INDICATOR'] == 'L') 
+
+data['Differential alpha'] = 1*(data['INDICATOR'] == 'L') 
+
+#Design Matrix
+X = sm.add_constant(data[['Differential alpha', 'Beta', 'Differential beta']])
+Y = (data['RETURN']*100)
+
+model = sm.OLS(Y, X)
+results = model.fit(cov_type = 'HAC', cov_kwds = {'maxlags':5})
+print(results.summary())
+
+
+
+# #CAPM
+# #Design Matrix
+# X1 = sm.add_constant(data[['Beta']])
+# Y1 = (data['RETURN']*100)
+
+# model = sm.OLS(Y1, X1)
+# results = model.fit(cov_type = 'HAC', cov_kwds = {'maxlags':22})
+# print(results.summary())
+
+
+
+# #=====================================================
+# #FF 5 Factors Risk Adjusted Returns
+# #=====================================================
+
+# pathmom = '/Users/johannesthellmann/Desktop/SoSe2021/Seminar BWL/data/csv/F-F_Momentum_Factor_daily.CSV'
+# mom = pd.read_csv(pathmom, delimiter=',', decimal='.')
+# mom['INDEX'] = mom['Dates']
+# mom = mom.set_index(mom['INDEX'])
+# mom = mom.drop(['INDEX'], axis=1)
+# mom['Dates_mom'] = pd.to_datetime(mom['Dates'])
+# mom = mom.drop(['Dates'], axis = 1)
+
+# data2 = pd.concat([LongShort, ff, treasury, mom], axis=1)
+# data2 = data2.dropna(subset = ['RETURN'])
+# data2 = data2.dropna()
+
+# #set time period
+# startdate = pd.to_datetime('2001-09-01')
+# enddate = pd.to_datetime('2020-06-01')
+# mask = (data2['Dates_FF'] > pd.to_datetime(startdate)) & (data2['Dates_FF'] < pd.to_datetime(enddate))
+# data2 = data2.loc[mask]
+
+# #When position is long = 1 else 0
+# #data['Mkt-RF_long'] = data['Mkt-RF'] * (data['INDICATOR'] == 'L') #Mkt-RF_long = differential BETA
+#                                                                    #Mkt-R = BETA    
+# data2['Diff. alpha'] = 1*(data2['INDICATOR'] == 'L') 
+# data2['Beta'] = data2['Mkt-RF']
+# data2['Diff. beta'] = data2['Mkt-RF'] * (data2['INDICATOR'] == 'L') 
+# data2['Diff. SMB'] = data2['SMB'] * (data2['INDICATOR'] == 'L')
+# data2['Diff. HML'] = data2['HML'] * (data2['INDICATOR'] == 'L')
+# data2['Diff. RMW'] = data2['RMW'] * (data2['INDICATOR'] == 'L')
+# data2['Diff. CMA'] = data2['CMA'] * (data2['INDICATOR'] == 'L')
+# data2['Diff. MOM'] = data2['Mom'] * (data2['INDICATOR'] == 'L')
+
+
+
+# #Design Matrix
+# #X_data = pd.DataFrame({'constant': data['constant'] ,'Mkt-RF': data['Mkt-RF'],'Mkt-RF_long': data['Mkt-RF_long']})
+
+# X = sm.add_constant(data2[['Diff. alpha','Beta','SMB','HML', 'RMW','CMA','Mom', 'Diff. beta', 'Diff. SMB','Diff. HML', 'Diff. RMW', 'Diff. CMA', 'Diff. MOM']])
+# Y = (data2['RETURN']*100)
+
+# model = sm.OLS(Y, X)
+# results = model.fit()
+# print(results.summary())
