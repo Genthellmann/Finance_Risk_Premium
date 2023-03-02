@@ -33,7 +33,7 @@ vix_p['MATURITY'] = pd.to_datetime(vix_p['MATURITY'])
 #Premium neu berechnen, aufgrund angepasster .csv file
 vix_p['PREMIUM2'] = vix_p['PX_LAST'] - vix_p['FORECAST']
 
-vix_p['PREMIUM2'] = vix_p['PX_LAST'] - vix_p['FORECAST']
+vix_p['PREMIUM2'] = vix_p['PX_LAST'] - vix_p['FORECASTsdf']
 
 
 # #==========================
