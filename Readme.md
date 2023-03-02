@@ -14,6 +14,7 @@ As the corona pandemic progresses in early 2020, VSTOXX premiums continue to fal
 
 **TStrategies.py** includes the different Trading Strategies to exploit the indications given by the premium with L=Long, S=Short, C=Cash.
 
+**Seminararbeit_Finance_Thellmann.pdf** the seminar paper written by the author of the repository.
 
 ## Remark
 A lot of the written code follows the style of an interactive Approach. A more automated version is currently developed and will be published first on the development branch. 
